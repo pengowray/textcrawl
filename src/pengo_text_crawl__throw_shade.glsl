@@ -2,6 +2,7 @@
  * GLSL Text Crawl Shader by Pengo Wray
  * 2025-03-01: initial version
  * 2025-03-15: fix scroll direction
+ * 2025-03-15: add numbers, hyphen, period
  *
  * - For use with LCOLONQ's _Throw Shade_ live shader
  *    - https://www.twitch.tv/lcolonq
@@ -18,7 +19,6 @@
  * - Additions to the above shader are CC0 / public domain / uncopyrightable gen ai garbage
  *
  * todo/bugs: 
- *   - [ ] support for numbers and/or punctuation
  *   - [ ] hide message when TRACKING_EYES (vec4) indicate the streamer is looking — blink tracking? each eye is between 1 (open) and 0 (closed)
  *
  * DO NOT USE FOR EVIL
@@ -27,7 +27,7 @@
 
 // ===================================================================
 // Text
-// (supports A–Z and space only)
+// (supports A–Z, 0-9, dot and space)
 // 
 // To update the message array, run this one-liner in JavaScript after changing "hi chat" to your message
 // let msg="hi chat"; console.log("// " + msg.toUpperCase() + " // " + msg.toUpperCase().length + "\nint message[MESSAGE_LENGTH] = int[](" + msg.toUpperCase().split('').map(c=>c.charCodeAt(0)).join(', ') + "); \n#define MESSAGE_LENGTH " + msg.toUpperCase().length);
@@ -35,13 +35,12 @@
 // Copy the result into getCharAt and update MESSAGE_LENGTH
 // ===================================================================
 
-
 #define CHAR_WIDTH 0.08
 #define CHAR_HEIGHT 0.1
 #define SPACING 0.02
 #define THICKNESS 0.25
 
-#define MESSAGE_LENGTH 5
+#define MESSAGE_LENGTH 23
 
 int getMessageLength() {
     return MESSAGE_LENGTH;
@@ -63,7 +62,10 @@ int getCharAt(int index) {
 	//int message[MESSAGE_LENGTH] = int[](84, 72, 85, 77, 66, 32, 77, 79, 68, 69, 32, 65, 67, 84, 73, 86, 65, 84, 69, 68); 
 
 	// ERROR // 5
-	int message[MESSAGE_LENGTH] = int[](69, 82, 82, 79, 82); 
+	//int message[MESSAGE_LENGTH] = int[](69, 82, 82, 79, 82); 
+
+    // TEST -3.141592653589793 // 23
+    int message[MESSAGE_LENGTH] = int[](84, 69, 83, 84, 32, 45, 51, 46, 49, 52, 49, 53, 57, 50, 54, 53, 51, 53, 56, 57, 55, 57, 51); 
 
     if (index < 0 || index >= MESSAGE_LENGTH) return 0;
     return message[index];
@@ -75,7 +77,7 @@ int getCharAt(int index) {
 // ===================================================================
 
 const float B = 0.25; // Bevel amount
-const int SEGMENT_COUNT = 25;
+const int SEGMENT_COUNT = 26;
 const mat2 SEGMENTS[SEGMENT_COUNT] = mat2[](
     //                                  0x.....0
     mat2(vec2(-1, 1.-B), vec2(-1, -1)),    //  left
@@ -108,7 +110,9 @@ const mat2 SEGMENTS[SEGMENT_COUNT] = mat2[](
     mat2(vec2(0, 1), vec2(0, 0)),             //  vertical(t)
     //                                  FROM CONTEXT
     mat2(vec2(-1, 1.-B), vec2(B-1., 1)),       //  bevel tl
-    mat2(vec2(1, B-1.), vec2(1.-B, -1))        //  bevel br
+    mat2(vec2(1, B-1.), vec2(1.-B, -1)),
+    //                                  New segment for dash ('-')
+    mat2(vec2(-0.5, 0), vec2(0.5, 0))
 );
 
 const int font[43] = int[](
@@ -127,14 +131,20 @@ const int font[43] = int[](
 // Returns 0 for space (or any unsupported character).
 int ascii_to_bitmask(int i) {
     if (i == 32) return 0; // space
-    if (i < 48 || i > 90) return 0; // Only support 0–9 and A–Z (upper-case)
+    
+    // dash '-' (ASCII 45)
+    if (i == 45) return (1 << 25);
+    
+    // period '.' (ASCII 46)
+    if (i == 46) return (1 << 21);
+    
+    // Only support 0–9 and A–Z (upper-case) beyond the above.
+    if (i < 48 || i > 90) return 0;
     int l = font[i - 48];
     if ((l & 0x13813) != 0) l += 1 << 23; // bevel tl
     if ((l & 0x03830) != 0) l += 1 << 24; // bevel br
     return l;
 }
-
-
 
 // Draw a character using the segment bitmask.
 float drawChar(vec2 uv, int charCode, float thickness) {
