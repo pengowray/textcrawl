@@ -1,74 +1,34 @@
-/** 
- * GLSL Text Crawl Shader by Pengo Wray
- * 2025-03-01: initial version
- * 2025-03-15: fix scroll direction
- * 2025-03-15: add numbers, hyphen, period
- *
- * - For use with LCOLONQ's _Throw Shade_ live shader
- *    - https://www.twitch.tv/lcolonq
- *    - https://secure.colonq.computer/throwshade
- * 
- * - Based on a shader i found on slash stole from poshbrolly.net
- *    - https://www.poshbrolly.net/shader/hX6h1YM6kJ5g4J39si0h
- *    - "beeg stretch -w-" by ciosai-tw (unknown license)
- *    - ciosai-tw socials:
- *       - https://www.poshbrolly.net/user/ciosai-tw
- *       - https://mastodon.gamedev.place/@CIOSAI_tw
- *       - https://www.youtube.com/channel/UCkbXx5WLtJxzWEH-abMKb1g
- *
- * - Additions to the above shader are CC0 / public domain / uncopyrightable gen ai garbage
- *
- * todo/bugs: 
- *   - [ ] hide message when TRACKING_EYES (vec4) indicate the streamer is looking — blink tracking? each eye is between 1 (open) and 0 (closed)
- *
- * DO NOT USE FOR EVIL
- * 
- *  */
-
-// ===================================================================
-// Text
-// (supports A–Z, 0-9, dot and space)
-// 
-// To update the message array, run this one-liner in JavaScript after changing "hi chat" to your message
-// let msg="hi chat"; console.log("// " + msg.toUpperCase() + " // " + msg.toUpperCase().length + "\nint message[MESSAGE_LENGTH] = int[](" + msg.toUpperCase().split('').map(c=>c.charCodeAt(0)).join(', ') + "); \n#define MESSAGE_LENGTH " + msg.toUpperCase().length);
-//
-// Copy the result into getCharAt and update MESSAGE_LENGTH
-// ===================================================================
-
 #define CHAR_WIDTH 0.08
 #define CHAR_HEIGHT 0.1
 #define SPACING 0.02
 #define THICKNESS 0.25
 
-#define MESSAGE_LENGTH 23
+// Fixed 8-character message: HH:MM:SS
+#define MESSAGE_LENGTH 8
 
+// Return fixed message length.
 int getMessageLength() {
     return MESSAGE_LENGTH;
 }
 
-// Retrieve a character code from the message array.
+// Convert the live time (in seconds) into a fixed HH:MM:SS text.
+// Hours, minutes, and seconds are computed from the global `time` variable.
 int getCharAt(int index) {
-	
-	// hi chat! // 8
-	//int message[MESSAGE_LENGTH] = int[](72, 73, 32, 67, 72, 65, 84, 33);
-	
-	// fun guy // 7
-	//int message[MESSAGE_LENGTH] = int[](70, 85, 78, 32, 71, 85, 89); 
-	
-	// ANY PRIMERS // 11
-	//int message[MESSAGE_LENGTH] = int[](65, 78, 89, 32, 80, 82, 73, 77, 69, 82, 83); 
-	
-	// THUMB MODE ACTIVATED // 20
-	//int message[MESSAGE_LENGTH] = int[](84, 72, 85, 77, 66, 32, 77, 79, 68, 69, 32, 65, 67, 84, 73, 86, 65, 84, 69, 68); 
-
-	// ERROR // 5
-	//int message[MESSAGE_LENGTH] = int[](69, 82, 82, 79, 82); 
-
-    // TEST -3.141592653589793 // 23
-    int message[MESSAGE_LENGTH] = int[](84, 69, 83, 84, 32, 45, 51, 46, 49, 52, 49, 53, 57, 50, 54, 53, 51, 53, 56, 57, 55, 57, 51); 
-
-    if (index < 0 || index >= MESSAGE_LENGTH) return 0;
-    return message[index];
+    int totalSeconds = int(time);
+    int seconds = totalSeconds % 60;
+    int minutes = (totalSeconds / 60) % 60;
+    int hours   = (totalSeconds / 3600) % 24;
+    
+    // Convert digit to ASCII ('0' is 48)
+    if (index == 0) return 48 + (hours / 10);
+    if (index == 1) return 48 + (hours % 10);
+    if (index == 2) return 58; // colon ':'
+    if (index == 3) return 48 + (minutes / 10);
+    if (index == 4) return 48 + (minutes % 10);
+    if (index == 5) return 58; // colon ':'
+    if (index == 6) return 48 + (seconds / 10);
+    if (index == 7) return 48 + (seconds % 10);
+    return 32; // fallback to space
 }
 
 
@@ -154,11 +114,11 @@ int ascii_to_bitmask(int i) {
 
 // Draw a character using the segment bitmask.
 float drawChar(vec2 uv, int charCode, float thickness) {
-    // Flip Y for proper orientation
+    // Flip Y for proper orientation.
     uv.y = 1.0 - uv.y;
     vec2 g = uv * 2.0 - 1.0; // Map uv from [0,1] to [-1,1]
     
-    // Early exit if outside bounds
+    // Early exit if outside bounds.
     if (abs(g.x) > 1.1 || abs(g.y) > 1.1) {
         return 1.0;
     }
@@ -166,7 +126,7 @@ float drawChar(vec2 uv, int charCode, float thickness) {
     int bitmask = ascii_to_bitmask(charCode);
     float d = 1.0;
     
-    // For each segment enabled in the bitmask, compute its distance
+    // For each segment enabled in the bitmask, compute its distance.
     for (int i = 0; i < SEGMENT_COUNT; i++) {
         if ((bitmask & (1 << i)) != 0) {
             vec2 p1 = SEGMENTS[i][0];
@@ -190,19 +150,18 @@ vec4 shade(vec2 cs) {
     vec3 bgColor = mix(vec3(0.05, 0.05, 0.15), vec3(0.1, 0.1, 0.2), cs.y);
     
     int messageLength = getMessageLength();
-
-    // Scroll left to right
-    //float scrollOffset = mod(time * 0.3, 1.0 + float(MESSAGE_LENGTH) * (charWidth + spacing)) - 1.0;
-    // Scroll right to left
-    float scrollOffset = 1.0 - mod(time * 0.3, 1.0 + float(messageLength) * (CHAR_WIDTH + SPACING));
+    // Scroll right-to-left.
+    //float scrollOffset = 1.0 - mod(time * 0.3, 1.0 + float(messageLength) * (CHAR_WIDTH + SPACING));
+    // fixed:
+    float scrollOffset = 1.0 - 0.5 * (1.0 + float(messageLength) * (CHAR_WIDTH + SPACING));
     
     vec4 resultColor = vec4(bgColor, 1.0);
     
     // Draw each character in the message.
-    for (int i = 0; i < 50; i++) { // Limit iterations for performance
+    for (int i = 0; i < 50; i++) { // Limit iterations for performance.
         if (i >= messageLength) break;
         int charCode = getCharAt(i);
-        if (charCode == 0) continue; // Skip unsupported characters
+        if (charCode == 0) continue; // Skip unsupported characters.
         
         // Compute horizontal position with scrolling.
         float charX = scrollOffset + float(i) * (CHAR_WIDTH + SPACING);
@@ -218,9 +177,9 @@ vec4 shade(vec2 cs) {
         // Only draw if within bounds.
         if (charUV.x >= 0.0 && charUV.x <= 1.0 && charUV.y >= 0.0 && charUV.y <= 1.0) {
             float charMask = drawChar(charUV, charCode, THICKNESS);
-            // Generate color based on time and character index.
+            // Generate a color based on time and character index.
             vec3 charColor = 0.5 + 0.5 * cos(time + float(i) * 0.3 + vec3(0, 2, 4));
-            // Optional pulse effect (using chat_time; adjust or remove as needed).
+            // Optional pulse effect.
             float pulse = 0.7 + 0.3 * sin((time - chat_time) * 3.0);
             charColor *= pulse;
             
