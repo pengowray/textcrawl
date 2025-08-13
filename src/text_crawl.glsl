@@ -2,7 +2,7 @@
  * GLSL Text Crawl Shader by Pengo Wray
  * 2025-03-01: initial version
  * 2025-03-15: fix scroll direction
- * 2025-03-15: add numbers, hyphen, period
+ * 2025-03-15: add numbers, hyphen, period, colon
  *
  * - For use with LCOLONQ's _Throw Shade_ live shader
  *    - https://www.twitch.tv/lcolonq
@@ -27,7 +27,7 @@
 
 // ===================================================================
 // Text
-// (supports A–Z, 0-9, dot and space)
+// (supports A–Z, 0-9, dot, colon and space)
 // 
 // To update the message array, run this one-liner in JavaScript after changing "hi chat" to your message
 // let msg="hi chat"; console.log("// " + msg.toUpperCase() + " // " + msg.toUpperCase().length + "\nint message[MESSAGE_LENGTH] = int[](" + msg.toUpperCase().split('').map(c=>c.charCodeAt(0)).join(', ') + "); \n#define MESSAGE_LENGTH " + msg.toUpperCase().length);
