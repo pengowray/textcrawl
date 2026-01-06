@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Text Crawl GLSL Message Generator</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 16px; }
+    label { display: block; margin: 0 0 6px; }
+    input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; }
+    textarea { width: 100%; height: 65vh; padding: 8px; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .row { margin: 0 0 14px; }
+    .hint { color: #444; font-size: 0.9rem; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="row">
+    <label for="msg">Message (updates shader as you type)</label>
+    <input id="msg" type="text" autocomplete="off" spellcheck="false" value="BOOST POWER" />
+    <div class="hint">Supported: A–Z, 0–9, space, '.', ':', '-'. Other characters become spaces.</div>
+  </div>
+
+  <div class="row">
+    <label for="out">Generated GLSL</label>
+    <textarea id="out" readonly spellcheck="false"></textarea>
+  </div>
+
+  <script src="https://unpkg.com/mustache@4.2.0/mustache.min.js"></script>
+  <script>
+    const TEMPLATE_URL = './text_crawl.glsl.mustache';
+
+    const msgEl = document.getElementById('msg');
+    const outEl = document.getElementById('out');
+
+    let templateText = null;
+
+    function normalizeMessage(raw) {
+      let s = String(raw ?? '').toUpperCase();
+      s = s.replace(/\r?\n/g, ' ');
+      s = s.replace(/[^A-Z0-9 .:\-]/g, ' ');
+      if (s.length === 0) s = ' ';
+      return s;
+    }
+
+    function toAsciiList(s) {
+      const codes = [];
+      for (let i = 0; i < s.length; i++) {
+        const code = s.charCodeAt(i);
+        // Keep within basic ASCII range; otherwise force space.
+        codes.push(code >= 0 && code <= 127 ? code : 32);
+      }
+      return codes.join(', ');
+    }
+
+    function render() {
+      if (!templateText) return;
+      const message = normalizeMessage(msgEl.value);
+      const view = {
+        MESSAGE: message,
+        MESSAGE_LENGTH: message.length,
+        MESSAGE_ASCII_LIST: toAsciiList(message),
+      };
+      outEl.value = Mustache.render(templateText, view);
+    }
+
+    async function main() {
+      try {
+        const resp = await fetch(TEMPLATE_URL, { cache: 'no-store' });
+        if (!resp.ok) throw new Error(`Failed to load template: ${resp.status} ${resp.statusText}`);
+        templateText = await resp.text();
+        msgEl.addEventListener('input', render);
+        render();
+      } catch (err) {
+        outEl.value = String(err);
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
