@@ -1,8 +1,5 @@
 /** 
  * GLSL Text Crawl Shader by Pengo Wray
- * 2025-03-01: initial version
- * 2025-03-15: fix scroll direction
- * 2025-03-15: add numbers, hyphen, period, colon
  *
  * - For use with LCOLONQ's _Throw Shade_ live shader
  *    - https://www.twitch.tv/lcolonq
@@ -18,21 +15,13 @@
  *
  * - Additions to the above shader are CC0 / public domain / uncopyrightable gen ai garbage
  *
- * todo/bugs: 
- *   - [ ] hide message when TRACKING_EYES (vec4) indicate the streamer is looking — blink tracking? each eye is between 1 (open) and 0 (closed)
- *
- * DO NOT USE FOR EVIL
+ * ⚠ DO NOT USE FOR EVIL
  * 
- *  */
+ **/
 
 // ===================================================================
 // Text
 // (supports A–Z, 0-9, dot, colon and space)
-// 
-// To update the message array, run this one-liner in JavaScript after changing "hi chat" to your message
-// let msg="hi chat"; console.log("// " + msg.toUpperCase() + " // " + msg.toUpperCase().length + "\nint message[MESSAGE_LENGTH] = int[]( " + msg.toUpperCase().split('').map(c=>c.charCodeAt(0)).join(', ') + " ); \n#define MESSAGE_LENGTH " + msg.toUpperCase().length);
-//
-// Copy the result into getCharAt and update MESSAGE_LENGTH
 // ===================================================================
 
 #define CHAR_WIDTH 0.08
@@ -49,7 +38,7 @@ int getMessageLength() {
 // Retrieve a character code from the message array.
 int getCharAt(int index) {
 	
-    // {{MESSAGE}} // {{MESSAGE_LENGTH}}
+    // {{MESSAGE}} // Len: {{MESSAGE_LENGTH}}
     int message[MESSAGE_LENGTH] = int[]({{MESSAGE_ASCII_LIST}}); 
 
     if (index < 0 || index >= MESSAGE_LENGTH) return 0;

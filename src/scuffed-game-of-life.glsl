@@ -2,6 +2,10 @@
 // Works without persistent buffers by computing each cell's state
 // from initial seed and evolving locally up to N steps.
 
+//// on lcolonq's steamdeck causes:
+// amdgpu: They CS has cancelled because the context is lost. This context is guilty of a soft recovery.
+// aborted (core dumped)
+
 const float CELL_SIZE = 32.0; // pixels per cell
 const float STEP_TIME = 0.3; // seconds per generation
 const int   MAX_STEPS = 5;   // number of generations simulated per pixel
