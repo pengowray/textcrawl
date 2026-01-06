@@ -40,7 +40,7 @@
 #define SPACING 0.02
 #define THICKNESS 0.25
 
-#define MESSAGE_LENGTH 23
+#define MESSAGE_LENGTH 11
 
 int getMessageLength() {
     return MESSAGE_LENGTH;
@@ -65,7 +65,10 @@ int getCharAt(int index) {
 	//int message[MESSAGE_LENGTH] = int[](69, 82, 82, 79, 82); 
 
     // TEST -3.141592653589793 // 23
-    int message[MESSAGE_LENGTH] = int[](84, 69, 83, 84, 32, 45, 51, 46, 49, 52, 49, 53, 57, 50, 54, 53, 51, 53, 56, 57, 55, 57, 51); 
+    //int message[MESSAGE_LENGTH] = int[](84, 69, 83, 84, 32, 45, 51, 46, 49, 52, 49, 53, 57, 50, 54, 53, 51, 53, 56, 57, 55, 57, 51); 
+    
+    // BOOST POWER // 11
+    int message[MESSAGE_LENGTH] = int[](66, 79, 79, 83, 84, 32, 80, 79, 87, 69, 82); 
 
     if (index < 0 || index >= MESSAGE_LENGTH) return 0;
     return message[index];
